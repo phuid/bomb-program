@@ -1,4 +1,6 @@
 #include <Arduino.h>
+//TODO: sequences in setup
+
 // DO NOT MODIFY
 ///////////////////////////////////////////////////////////////////////////////
 // CONFIG (lines 4-33)
@@ -26,14 +28,17 @@ in ms
 [4] = length of third beep
 sequence ends instantly after third beep
 */
-#define CORRECT_SEQUENCE 200, 200, 50, 50, 50
-#define WRONG_SEQUENCE 2000, 0, 0, 0, 0
+#define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50
+#define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0
 #define WIRE_SELECT_SEQUENCE 50, 50, 50, 50, 50
-#define TIMER_SELECT_SEQUENCE 50, 100, 150, 200, 250 
+#define TIMER_SELECT_SEQUENCE 50, 100, 150, 200, 250
 
 // CONFIG (lines 4-34)
 ///////////////////////////////////////////////////////////////////////////////
 // DO NOT MODIFY
+
+bool previous_reset_btn_state;
+bool gameover = 0;
 
 enum Gameover_reason
 {
@@ -134,14 +139,13 @@ void restart()
   led_length = 0;
   ledvalue = 0;
   piezovalue = 0;
-  makesequence(CORRECT_SEQUENCE);
+  makesequence(DEFUSAL_SEQUENCE);
   gamestart_time = millis();
 }
 
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("Starting...");
   pinMode(WRONG_PIN, INPUT_PULLUP);
   for (uint8_t i = 0; i < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]); i++)
   {
@@ -155,19 +159,18 @@ void setup()
   pinMode(PIEZO_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
 
-  Serial.println("Welcome to the game!");
-
-  makesequence(WIRE_SELECT_SEQUENCE);
-
   // select wire
   ////wait for button -> read the switches
-  bool correct_pin_selected = false;
-  bool previous = digitalRead(RESET_BTN_PIN);
+  Serial.println("select correct pin by inputing its binary number via dipswitches, then press RESET button");
+
   makesequence(WIRE_SELECT_SEQUENCE);
+
+  bool correct_pin_selected = false;
+  previous_reset_btn_state = digitalRead(RESET_BTN_PIN);
   while (!correct_pin_selected)
   {
-    bool current = digitalRead(RESET_BTN_PIN);
-    if (!current && previous)
+    bool current_reset_btn_state = digitalRead(RESET_BTN_PIN);
+    if (current_reset_btn_state && !previous_reset_btn_state)
     {
       uint8_t switches_state = readswitches();
       if (switches_state < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]))
@@ -181,8 +184,8 @@ void setup()
         Serial.println(switches_state);
       }
     }
-    previous = current;
-    if (current)
+    previous_reset_btn_state = current_reset_btn_state;
+    if (current_reset_btn_state)
       delay(10);
   }
 
@@ -191,13 +194,16 @@ void setup()
 
   // select timer
   ////wait for button -> read the switches
-  bool timer_selected = false;
-  previous = digitalRead(RESET_BTN_PIN);
+  Serial.println("select gamelength by inputing its binary number via dipswitches then press RESET button");
+
   makesequence(TIMER_SELECT_SEQUENCE);
+
+  bool timer_selected = false;
+  previous_reset_btn_state = digitalRead(RESET_BTN_PIN);
   while (!timer_selected)
   {
-    bool current = digitalRead(RESET_BTN_PIN);
-    if (!current && previous)
+    bool current_reset_btn_state = digitalRead(RESET_BTN_PIN);
+    if (current_reset_btn_state && !previous_reset_btn_state)
     {
       uint8_t switches_state = readswitches();
       if (switches_state < sizeof(GAMELENGTH_POSSIBILITIES) / sizeof(GAMELENGTH_POSSIBILITIES[0]))
@@ -211,8 +217,8 @@ void setup()
         Serial.println(switches_state);
       }
     }
-    previous = current;
-    if (current)
+    previous_reset_btn_state = current_reset_btn_state;
+    if (current_reset_btn_state)
       delay(10);
   }
 
@@ -255,65 +261,75 @@ size_t calc_delay()
   return 1000.0 / bps;
 }
 
-void gameover(Gameover_reason reason)
+void endgame(Gameover_reason reason)
 {
   if (reason == REASON_TIMEOUT || reason == REASON_WRONG_WIRE)
   {
     Serial.print("BOOM: ");
     Serial.println((millis() - gamestart_time) / 1000.f);
+    makesequence(EXPLOSION_SEQUENCE);
   }
+  ledvalue = 0;
+  led_length = 0;
+  ledstart_time = 0;
+  gameover = 1;
 }
 
 void loop()
 {
   // if reset reset
-  if (!digitalRead(RESET_BTN_PIN))
+  bool current_reset_btn_state = digitalRead(RESET_BTN_PIN);
+  if (current_reset_btn_state && !previous_reset_btn_state)
   {
     restart();
   }
+  previous_reset_btn_state = current_reset_btn_state;
 
-  // check wires
-  ////check correct wire
-  if (digitalRead(correct_pin) == 1)
+  if (!gameover)
   {
-    // Serial.println("Correct wire!");
-    // gameover(REASON_CORRECT_WIRE);
-  }
+    // check wires
+    ////check correct wire
+    if (digitalRead(correct_pin) == 1)
+    {
+      // Serial.println("Correct wire!");
+      // endgame(REASON_CORRECT_WIRE);
+    }
 
-  ////check wrong wires
-  for (uint8_t i = 0; i < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]); i++)
-  {
-    if (CORRECT_PINS[i] != correct_pin && digitalRead(CORRECT_PINS[i]) == 1)
+    ////check wrong wires
+    for (uint8_t i = 0; i < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]); i++)
+    {
+      if (CORRECT_PINS[i] != correct_pin && digitalRead(CORRECT_PINS[i]) == 1)
+      {
+        // Serial.println("Wrong wire!");
+        // endgame(REASON_WRONG_WIRE);
+        break;
+      }
+    }
+    if (digitalRead(WRONG_PIN) == 1)
     {
       // Serial.println("Wrong wire!");
-      // gameover(REASON_WRONG_WIRE);
-      break;
+      // endgame(REASON_WRONG_WIRE);
     }
-  }
-  if (digitalRead(WRONG_PIN) == 1)
-  {
-    // Serial.println("Wrong wire!");
-    // gameover(REASON_WRONG_WIRE);
-  }
 
-  // check timer
-  if (millis() - gamestart_time > gamelenght)
-  {
-    // Serial.println("Time's up!");
-    gameover(REASON_TIMEOUT);
-  }
+    // check timer
+    if (millis() - gamestart_time > gamelenght)
+    {
+      // Serial.println("Time's up!");
+      endgame(REASON_TIMEOUT);
+    }
 
-  // set the led and piezo variables
-  ////normal ticking
-  if (millis() - ledstart_time > led_length)
-  {
-    piezo(1, PIEZO_SINGLEBEEP_LENGTH);
-    led(calc_delay());
-  }
+    // set the led and piezo variables
+    ////normal ticking
+    if (millis() - ledstart_time > led_length)
+    {
+      piezo(1, PIEZO_SINGLEBEEP_LENGTH);
+      led(calc_delay());
+    }
 
-  if (millis() - piezostart_time > piezo_length)
-  {
-    piezovalue = 0;
+    if (millis() - piezostart_time > piezo_length)
+    {
+      piezovalue = 0;
+    }
   }
 
   ////beep sequences

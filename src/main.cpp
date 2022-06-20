@@ -1,11 +1,11 @@
 #include <Arduino.h>
 
 #define WRONG_PIN 31
-const uint8_t correct_pins[5] = {26, 27, 28, 29, 30};
+const uint8_t CORRECT_PINS[5] = {26, 27, 28, 29, 30};
 
 #define RESET_BTN_PIN 53
-const uint8_t switches[4] = {50, 51, 48, 49};                                                                        // in order 8421 (see the board)
-const uint16_t gamelenght_possibilities[16] = {5, 10, 15, 20, 30, 40, 60, 80, 100, 120, 150, 180, 210, 240, 300, 600}; // in seconds
+const uint8_t SWITCHES[4] = {50, 51, 48, 49};                                                                          // in order 8421 (see the board)
+const uint16_t GAMELENGTH_POSSIBILITIES[16] = {5, 10, 15, 20, 30, 40, 60, 80, 100, 120, 150, 180, 210, 240, 300, 600}; // in seconds
 
 #define PIEZO_PIN 46
 #define LED_PIN LED_BUILTIN
@@ -15,18 +15,26 @@ const uint16_t gamelenght_possibilities[16] = {5, 10, 15, 20, 30, 40, 60, 80, 10
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+enum Gameover_reason {
+    REASON_NONE,
+    REASON_CORRECT_WIRE,
+    REASON_WRONG_WIRE,
+    REASON_TIMEOUT,
+    REASON_RESET
+};
+
 uint8_t correct_pin;
-size_t gamelenght;
-size_t gamestart_time;
+uint32_t gamelenght;
+uint32_t gamestart_time;
 
 bool ledvalue = false;
 bool piezovalue = false;
 
-size_t ledstart_time;
-size_t piezostart_time;
+uint32_t ledstart_time;
+uint32_t piezostart_time;
 
-size_t led_length;
-size_t piezo_length;
+uint32_t led_length;
+uint32_t piezo_length;
 
 int power(int base, int exponent)
 {
@@ -52,33 +60,37 @@ uint8_t binaryToDecimal(bool *binary)
 uint8_t readswitches()
 {
   bool arr[4];
-  for (uint8_t i = 0; i < sizeof(switches) / sizeof(switches[0]); i++)
+  for (uint8_t i = 0; i < sizeof(SWITCHES) / sizeof(SWITCHES[0]); i++)
   {
-    pinMode(switches[i], INPUT_PULLUP);
-    arr[i] = digitalRead(switches[i]);
+    pinMode(SWITCHES[i], INPUT_PULLUP);
+    arr[i] = digitalRead(SWITCHES[i]);
   }
   return binaryToDecimal(arr);
 }
 
 void led(bool value, size_t length)
 {
-  ledvalue = 1;
+  ledvalue = value;
   ledstart_time = millis();
   led_length = length;
 }
 
 void led(size_t length)
 {
-  ledvalue = !ledvalue;
-  ledstart_time = millis();
-  led_length = length;
+  led(!ledvalue, length);
 }
 
 void piezo(bool value, size_t length)
 {
-  piezovalue = 1;
+  piezovalue = value;
   piezostart_time = millis();
   piezo_length = length;
+}
+
+void restart() {
+  gamestart_time = millis();
+  ledvalue = 0;
+  piezovalue = 0;
 }
 
 void setup()
@@ -86,14 +98,14 @@ void setup()
   Serial.begin(115200);
   Serial.println("Starting...");
   pinMode(WRONG_PIN, INPUT_PULLUP);
-  for (uint8_t i = 0; i < sizeof(correct_pins) / sizeof(correct_pins[0]); i++)
+  for (uint8_t i = 0; i < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]); i++)
   {
-    pinMode(correct_pins[i], INPUT_PULLUP);
+    pinMode(CORRECT_PINS[i], INPUT_PULLUP);
   }
   pinMode(RESET_BTN_PIN, INPUT_PULLUP);
-  for (uint8_t i = 0; i < sizeof(switches) / sizeof(switches[0]); i++)
+  for (uint8_t i = 0; i < sizeof(SWITCHES) / sizeof(SWITCHES[0]); i++)
   {
-    pinMode(switches[i], INPUT_PULLUP);
+    pinMode(SWITCHES[i], INPUT_PULLUP);
   }
   pinMode(PIEZO_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
@@ -110,12 +122,13 @@ void setup()
     if (!current && previous)
     {
       uint8_t switches_state = readswitches();
-      if (switches_state < sizeof(correct_pins) / sizeof(correct_pins[0]))
+      if (switches_state < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]))
       {
-        correct_pin = correct_pins[switches_state];
+        correct_pin = CORRECT_PINS[switches_state];
         correct_pin_selected = true;
       }
-      else {
+      else
+      {
         Serial.print("Invalid switch state: ");
         Serial.println(switches_state);
       }
@@ -138,12 +151,13 @@ void setup()
     if (!current && previous)
     {
       uint8_t switches_state = readswitches();
-      if (switches_state < sizeof(gamelenght_possibilities) / sizeof(gamelenght_possibilities[0]))
+      if (switches_state < sizeof(GAMELENGTH_POSSIBILITIES) / sizeof(GAMELENGTH_POSSIBILITIES[0]))
       {
-        gamelenght = gamelenght_possibilities[switches_state] * 1000;
+        gamelenght = GAMELENGTH_POSSIBILITIES[switches_state] * 1000;
         timer_selected = true;
       }
-      else {
+      else
+      {
         Serial.print("Invalid switch state: ");
         Serial.println(switches_state);
       }
@@ -158,7 +172,7 @@ void setup()
 
   // wait for button -> start the game
 
-  gamestart_time = millis();
+  restart();
 }
 
 size_t calc_delay()
@@ -179,9 +193,9 @@ size_t calc_delay()
 #define BEEP_A1 0.244017811416199
 #define BEEP_A2 1.76379778668885
   // Calculate next beep time
-  float x = (float)(millis() - gamestart_time) / gamelenght;
-  float n = BEEP_A1 * x + BEEP_A2 * x * x;
-  float bps = BEEP_A0 * exp(n);
+  double x = (float)(millis() - gamestart_time) / gamelenght;
+  double n = BEEP_A1 * x + BEEP_A2 * x * x;
+  double bps = BEEP_A0 * exp(n);
 
   // Convert bps (beeps per second) to a wait time in milliseconds
   Serial.print(millis() - gamestart_time);
@@ -192,13 +206,51 @@ size_t calc_delay()
   return 1000.0 / bps;
 }
 
+void gameover(Gameover_reason reason) {
+  if (reason == REASON_TIMEOUT)
+    restart();
+}
+
 void loop()
 {
   // if reset reset
+  if (!digitalRead(RESET_BTN_PIN))
+  {
+    Serial.print("Reset ");
+    restart();
+    Serial.println(millis()-gamestart_time);
+  }
 
   // check wires
+  ////check correct wire
+  if (digitalRead(correct_pin) == 1)
+  {
+    // Serial.println("Correct wire!");
+    gameover(REASON_CORRECT_WIRE);
+  }
 
+  ////check wrong wires
+  for (uint8_t i = 0; i < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]); i++)
+  {
+    if (CORRECT_PINS[i] != correct_pin && digitalRead(CORRECT_PINS[i]) == 1)
+    {
+      // Serial.println("Wrong wire!");
+      gameover(REASON_WRONG_WIRE);
+      break;
+    }
+  }
+  if (digitalRead(WRONG_PIN) == 1)
+  {
+    // Serial.println("Wrong wire!");
+    gameover(REASON_WRONG_WIRE);
+  }
+  
   // check timer
+  if (millis() - gamestart_time > gamelenght)
+  {
+    // Serial.println("Time's up!");
+    gameover(REASON_TIMEOUT);
+  }
 
   // set the led and piezo variables
   ////normal ticking
@@ -206,6 +258,11 @@ void loop()
   {
     piezo(1, PIEZO_SINGLEBEEP_LENGTH);
     led(calc_delay());
+  }
+
+  if (millis() - piezostart_time > piezo_length)
+  {
+    piezovalue = 0;
   }
 
   ////beep sequences

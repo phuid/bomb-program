@@ -26,10 +26,10 @@ in ms
 [4] = length of third beep
 sequence ends instantly after third beep
 */
-#define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50
-#define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0
-#define WIRE_SELECT_SEQUENCE 50, 50, 50, 50, 50
-#define TIMER_SELECT_SEQUENCE 200, 50, 50, 50, 50
+#define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50     //####....#.#
+#define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0       //########################################
+#define WIRE_SELECT_SEQUENCE 50, 50, 50, 50, 50   //#.#.#
+#define TIMER_SELECT_SEQUENCE 200, 50, 50, 50, 50 //####.#.#
 // CONFIG (lines 4-34)
 ///////////////////////////////////////////////////////////////////////////////
 // DO NOT MODIFY

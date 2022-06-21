@@ -136,6 +136,7 @@ void restart()
   led_length = 0;
   ledvalue = 0;
   piezovalue = 0;
+  gameover = 0;
   gamestart_time = millis();
 }
 
@@ -199,6 +200,9 @@ void setup()
         sequence_index = -1;
       }
     }
+
+    ledvalue = (millis() / 50 % 10);
+
     digitalWrite(PIEZO_PIN, piezovalue);
     digitalWrite(LED_PIN, ledvalue);
   }
@@ -232,7 +236,7 @@ void setup()
       }
     }
     previous_reset_btn_state = current_reset_btn_state;
-    
+
     ////beep sequences
     if (sequence_index >= 0)
     {
@@ -250,6 +254,9 @@ void setup()
         sequence_index = -1;
       }
     }
+
+    ledvalue = !(millis() / 50 % 10);
+
     digitalWrite(PIEZO_PIN, piezovalue);
     digitalWrite(LED_PIN, ledvalue);
   }
@@ -297,9 +304,20 @@ void endgame(Gameover_reason reason)
 {
   if (reason == REASON_TIMEOUT || reason == REASON_WRONG_WIRE)
   {
-    Serial.print("BOOM: ");
+    Serial.print("BOMB EXPLODED: ");
+    Serial.println((millis() - gamestart_time) / 1000.f);
+    makesequence(EXPLOSION_SEQUENCE);
+  }
+  else if (reason == REASON_CORRECT_WIRE)
+  {
+    Serial.print("BOMB DEFUSED: ");
     Serial.println((millis() - gamestart_time) / 1000.f);
     makesequence(DEFUSAL_SEQUENCE);
+  }
+  else
+  {
+    Serial.print("UNKNOWN ENDGAME REASON: ");
+    Serial.print(millis() - gamestart_time);
   }
   ledvalue = 0;
   led_length = 0;
@@ -323,25 +341,32 @@ void loop()
     ////check correct wire
     if (digitalRead(correct_pin) == 1)
     {
-      // Serial.println("Correct wire!");
-      // endgame(REASON_CORRECT_WIRE);
+      endgame(REASON_CORRECT_WIRE);
     }
+
+    if (gameover)
+      return;
 
     ////check wrong wires
     for (uint8_t i = 0; i < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]); i++)
     {
       if (CORRECT_PINS[i] != correct_pin && digitalRead(CORRECT_PINS[i]) == 1)
       {
-        // Serial.println("Wrong wire!");
-        // endgame(REASON_WRONG_WIRE);
-        break;
+        endgame(REASON_WRONG_WIRE);
+        return;
       }
     }
+
+    if (gameover)
+      return;
+
     if (digitalRead(WRONG_PIN) == 1)
     {
-      // Serial.println("Wrong wire!");
-      // endgame(REASON_WRONG_WIRE);
+      endgame(REASON_WRONG_WIRE);
     }
+
+    if (gameover)
+      return;
 
     // check timer
     if (millis() - gamestart_time > gamelenght)
@@ -349,6 +374,9 @@ void loop()
       // Serial.println("Time's up!");
       endgame(REASON_TIMEOUT);
     }
+
+    if (gameover)
+      return;
 
     // set the led and piezo variables
     ////normal ticking

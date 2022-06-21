@@ -1,10 +1,8 @@
 #include <Arduino.h>
-//TODO: sequences in setup
 
 // DO NOT MODIFY
 ///////////////////////////////////////////////////////////////////////////////
 // CONFIG (lines 4-33)
-
 #define WRONG_PIN 31
 const uint8_t CORRECT_PINS[5] = {26, 27, 28, 29, 30};
 
@@ -31,8 +29,7 @@ sequence ends instantly after third beep
 #define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50
 #define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0
 #define WIRE_SELECT_SEQUENCE 50, 50, 50, 50, 50
-#define TIMER_SELECT_SEQUENCE 50, 100, 150, 200, 250
-
+#define TIMER_SELECT_SEQUENCE 200, 50, 50, 50, 50
 // CONFIG (lines 4-34)
 ///////////////////////////////////////////////////////////////////////////////
 // DO NOT MODIFY
@@ -139,7 +136,6 @@ void restart()
   led_length = 0;
   ledvalue = 0;
   piezovalue = 0;
-  makesequence(DEFUSAL_SEQUENCE);
   gamestart_time = millis();
 }
 
@@ -161,7 +157,7 @@ void setup()
 
   // select wire
   ////wait for button -> read the switches
-  Serial.println("select correct pin by inputing its binary number via dipswitches, then press RESET button");
+  Serial.println("select CORRECT PIN by inputing its binary number via dipswitches, then press RESET button");
 
   makesequence(WIRE_SELECT_SEQUENCE);
 
@@ -185,8 +181,26 @@ void setup()
       }
     }
     previous_reset_btn_state = current_reset_btn_state;
-    if (current_reset_btn_state)
-      delay(10);
+
+    ////beep sequences
+    if (sequence_index >= 0)
+    {
+      if (millis() - piezostart_time > piezo_length)
+      {
+        piezo_length = sequence[sequence_index];
+        piezostart_time = millis();
+        sequence_index++;
+      }
+
+      piezovalue = (sequence_index % 2);
+
+      if (sequence_index > sizeof(sequence) / sizeof(sequence[0]))
+      {
+        sequence_index = -1;
+      }
+    }
+    digitalWrite(PIEZO_PIN, piezovalue);
+    digitalWrite(LED_PIN, ledvalue);
   }
 
   Serial.print("Correct pin: ");
@@ -194,7 +208,7 @@ void setup()
 
   // select timer
   ////wait for button -> read the switches
-  Serial.println("select gamelength by inputing its binary number via dipswitches then press RESET button");
+  Serial.println("select GAMELENGTH by inputing its binary number via dipswitches then press RESET button");
 
   makesequence(TIMER_SELECT_SEQUENCE);
 
@@ -218,8 +232,26 @@ void setup()
       }
     }
     previous_reset_btn_state = current_reset_btn_state;
-    if (current_reset_btn_state)
-      delay(10);
+    
+    ////beep sequences
+    if (sequence_index >= 0)
+    {
+      if (millis() - piezostart_time > piezo_length)
+      {
+        piezo_length = sequence[sequence_index];
+        piezostart_time = millis();
+        sequence_index++;
+      }
+
+      piezovalue = (sequence_index % 2);
+
+      if (sequence_index > sizeof(sequence) / sizeof(sequence[0]))
+      {
+        sequence_index = -1;
+      }
+    }
+    digitalWrite(PIEZO_PIN, piezovalue);
+    digitalWrite(LED_PIN, ledvalue);
   }
 
   Serial.print("Timer: ");
@@ -267,7 +299,7 @@ void endgame(Gameover_reason reason)
   {
     Serial.print("BOOM: ");
     Serial.println((millis() - gamestart_time) / 1000.f);
-    makesequence(EXPLOSION_SEQUENCE);
+    makesequence(DEFUSAL_SEQUENCE);
   }
   ledvalue = 0;
   led_length = 0;

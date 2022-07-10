@@ -8,7 +8,8 @@
 const uint8_t CORRECT_PINS[5] = {26, 27, 28, 29, 31};
 
 #define RESET_BTN_PIN 52
-const uint8_t SWITCHES[4] = {51, 50, 49, 48};                                                                          // in order 8421 (see the board)
+const uint8_t SWITCHES[4] = {48, 49, 50, 51};                                                                          // in order 8421 (see the board)
+#define INVERT_SWITCHES true
 const uint16_t GAMELENGTH_POSSIBILITIES[16] = {5, 10, 15, 20, 30, 40, 60, 80, 100, 120, 150, 180, 210, 240, 300, 600}; // in seconds
 
 #define PIEZO_PIN 47
@@ -91,7 +92,7 @@ uint8_t readswitches()
   for (uint8_t i = 0; i < sizeof(SWITCHES) / sizeof(SWITCHES[0]); i++)
   {
     pinMode(SWITCHES[i], INPUT_PULLUP);
-    arr[i] = digitalRead(SWITCHES[i]);
+    arr[i] = INVERT_SWITCHES ^ digitalRead(SWITCHES[i]);
   }
   return binaryToDecimal(arr);
 }
@@ -229,7 +230,7 @@ void setup()
       uint8_t switches_state = readswitches();
       if (switches_state < sizeof(GAMELENGTH_POSSIBILITIES) / sizeof(GAMELENGTH_POSSIBILITIES[0]))
       {
-        gamelenght = GAMELENGTH_POSSIBILITIES[switches_state] * 1000;
+        gamelenght = (uint32_t) GAMELENGTH_POSSIBILITIES[switches_state] * 1000;
         timer_selected = true;
       }
       else

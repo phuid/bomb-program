@@ -1,18 +1,18 @@
 #include <Arduino.h>
 
-// DO NOT MODIFY
+// DO NOT MODIFY [above]
 ///////////////////////////////////////////////////////////////////////////////
-// CONFIG (lines 4-33)
-#define WRONG_PIN 31
-const uint8_t CORRECT_PINS[5] = {26, 27, 28, 29, 30};
+// CONFIG [below] (lines 4-33)
 
-#define RESET_BTN_PIN 53
-const uint8_t SWITCHES[4] = {50, 51, 48, 49};                                                                          // in order 8421 (see the board)
+#define WRONG_PIN 30
+const uint8_t CORRECT_PINS[5] = {26, 27, 28, 29, 31};
+
+#define RESET_BTN_PIN 52
+const uint8_t SWITCHES[4] = {51, 50, 49, 48};                                                                          // in order 8421 (see the board)
 const uint16_t GAMELENGTH_POSSIBILITIES[16] = {5, 10, 15, 20, 30, 40, 60, 80, 100, 120, 150, 180, 210, 240, 300, 600}; // in seconds
 
-#define PIEZO_PIN 46
-#define LED_PIN LED_BUILTIN
-// led - 52
+#define PIEZO_PIN 47
+#define LED_PIN 53
 
 #define PIEZO_SINGLEBEEP_LENGTH 100 // in ms
 
@@ -26,13 +26,15 @@ in ms
 [4] = length of third beep
 sequence ends instantly after third beep
 */
-#define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50     //####....#.#
-#define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0       //########################################
-#define WIRE_SELECT_SEQUENCE 50, 50, 50, 50, 50   //#.#.#
-#define TIMER_SELECT_SEQUENCE 200, 50, 50, 50, 50 //####.#.#
-// CONFIG (lines 4-34)
+#define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50         //####....#.#
+#define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0           //########################################
+#define WIRE_SELECT_SEQUENCE 50, 0, 0, 0, 0           //#
+#define TIMER_SELECT_SEQUENCE 50, 50, 50, 0, 0        //#.#
+#define INVALID_SWITCH_STATE_SEQUENCE 300, 50, 300, 0, 0 //######.######
+
+// CONFIG [above] (lines 4-34)
 ///////////////////////////////////////////////////////////////////////////////
-// DO NOT MODIFY
+// DO NOT MODIFY [below]
 
 bool previous_reset_btn_state;
 bool gameover = 0;
@@ -178,6 +180,7 @@ void setup()
       else
       {
         Serial.print("Invalid switch state: ");
+        makesequence(INVALID_SWITCH_STATE_SEQUENCE);;
         Serial.println(switches_state);
       }
     }
@@ -232,6 +235,7 @@ void setup()
       else
       {
         Serial.print("Invalid switch state: ");
+        makesequence(INVALID_SWITCH_STATE_SEQUENCE);
         Serial.println(switches_state);
       }
     }

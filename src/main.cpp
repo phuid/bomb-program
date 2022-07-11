@@ -5,7 +5,7 @@
 // CONFIG [below] (lines 4-33)
 
 // ATmega => true; ESP32 => false
-#define BOARD_IS_ATmega false
+#define BOARD_IS_ATmega true
 
 #if BOARD_IS_ATmega
 

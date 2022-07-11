@@ -4,21 +4,39 @@
 ///////////////////////////////////////////////////////////////////////////////
 // CONFIG [below] (lines 4-33)
 
-// !! ATmega CONFIG !!
+// ATmega => true; ESP32 => false
+#define BOARD_IS_ATmega false
+
+#if BOARD_IS_ATmega
 
 #define WRONG_PIN 30
 const uint8_t CORRECT_PINS[5] = {26, 27, 28, 29, 31};
 
 #define RESET_BTN_PIN 52
-const uint8_t SWITCHES[4] = {48, 49, 50, 51};                                                                          // in order 8421 (see the board)
+const uint8_t SWITCHES[4] = {48, 49, 50, 51}; // in order 8421 (see the board)
 #define INVERT_SWITCHES true
 const uint16_t GAMELENGTH_POSSIBILITIES[16] = {5, 10, 15, 20, 30, 40, 60, 80, 100, 120, 150, 180, 210, 240, 300, 600}; // in seconds
 
 #define PIEZO_PIN 47
 #define LED_PIN 53
 
-#define PIEZO_SINGLEBEEP_LENGTH 100 // in ms
+#else
 
+#define WRONG_PIN 12
+const uint8_t CORRECT_PINS[5] = {33, 25, 26, 27, 14};
+
+#define RESET_BTN_PIN 19
+const uint8_t SWITCHES[4] = {17, 5, 4, 16}; // in order 8421 (see the board)
+#define INVERT_SWITCHES true
+const uint16_t GAMELENGTH_POSSIBILITIES[16] = {5, 10, 15, 20, 30, 40, 60, 80, 100, 120, 150, 180, 210, 240, 300, 600}; // in seconds
+
+#define PIEZO_PIN 0
+#define LED_PIN 18
+
+
+#endif
+
+#define PIEZO_SINGLEBEEP_LENGTH 100 // in ms
 /*
 SEQUENCE HELP:
 in ms
@@ -29,10 +47,10 @@ in ms
 [4] = length of third beep
 sequence ends instantly after third beep
 */
-#define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50         //####....#.#
-#define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0           //########################################
-#define WIRE_SELECT_SEQUENCE 50, 0, 0, 0, 0           //#
-#define TIMER_SELECT_SEQUENCE 50, 50, 50, 0, 0        //#.#
+#define DEFUSAL_SEQUENCE 200, 200, 50, 50, 50            //####....#.#
+#define EXPLOSION_SEQUENCE 2000, 0, 0, 0, 0              //########################################
+#define WIRE_SELECT_SEQUENCE 50, 0, 0, 0, 0              //#
+#define TIMER_SELECT_SEQUENCE 50, 50, 50, 0, 0           //#.#
 #define INVALID_SWITCH_STATE_SEQUENCE 300, 50, 300, 0, 0 //######.######
 
 // CONFIG [above] (lines 4-34)
@@ -183,7 +201,8 @@ void setup()
       else
       {
         Serial.print("Invalid switch state: ");
-        makesequence(INVALID_SWITCH_STATE_SEQUENCE);;
+        makesequence(INVALID_SWITCH_STATE_SEQUENCE);
+        ;
         Serial.println(switches_state);
       }
     }
@@ -232,7 +251,7 @@ void setup()
       uint8_t switches_state = readswitches();
       if (switches_state < sizeof(GAMELENGTH_POSSIBILITIES) / sizeof(GAMELENGTH_POSSIBILITIES[0]))
       {
-        gamelenght = (uint32_t) GAMELENGTH_POSSIBILITIES[switches_state] * 1000;
+        gamelenght = (uint32_t)GAMELENGTH_POSSIBILITIES[switches_state] * 1000;
         timer_selected = true;
       }
       else

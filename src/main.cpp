@@ -4,6 +4,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // CONFIG [below] (lines 4-33)
 
+// !! ATmega CONFIG !!
+
 #define WRONG_PIN 30
 const uint8_t CORRECT_PINS[5] = {26, 27, 28, 29, 31};
 

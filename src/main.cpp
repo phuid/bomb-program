@@ -372,13 +372,13 @@ void loop()
   {
     // check wires
     ////check correct wire
-    if (digitalRead(correct_pin) == 1)
+    if (digitalRead(correct_pin))
     {
       uint32_t wire_timer_start = millis();
 
       while (millis() - wire_timer_start < WIRE_CHECK_TIME)
       {
-        if (digitalRead(correct_pin))
+        if (!digitalRead(correct_pin))
           return;
       }
 
@@ -394,13 +394,13 @@ void loop()
     ////check wrong wires
     for (uint8_t i = 0; i < sizeof(CORRECT_PINS) / sizeof(CORRECT_PINS[0]); i++)
     {
-      if (CORRECT_PINS[i] != correct_pin && digitalRead(CORRECT_PINS[i]) == 1)
+      if (CORRECT_PINS[i] != correct_pin && digitalRead(CORRECT_PINS[i]))
       {
         uint32_t wire_timer_start = millis();
 
         while (millis() - wire_timer_start < WIRE_CHECK_TIME)
         {
-          if (digitalRead(CORRECT_PINS[i]))
+          if (!digitalRead(CORRECT_PINS[i]))
             return;
         }
 
@@ -417,13 +417,13 @@ void loop()
     if (gameover)
       return;
 
-    if (digitalRead(WRONG_PIN) == 1)
+    if (digitalRead(WRONG_PIN))
     {
       uint32_t wire_timer_start = millis();
 
       while (millis() - wire_timer_start < WIRE_CHECK_TIME)
       {
-        if (digitalRead(WRONG_PIN))
+        if (!digitalRead(WRONG_PIN))
           return;
       }
 
